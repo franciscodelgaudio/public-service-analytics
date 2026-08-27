@@ -1,28 +1,41 @@
 # pipeline/main.py
 
-from .extract import (
+from pipeline.extract import (
     extract_chamados,
     extract_municipios,
     extract_categorias,
     extract_prioridades,
 )
 
-from .validate import validate_chamados
+from pipeline.validate import (
+    validate_chamados,
+)
 
-from .transform import transform_chamados
+from pipeline.transform import (
+    transform_chamados,
+)
+
+from pipeline.load import (
+    get_engine,
+    load_municipios,
+    load_categorias,
+    load_prioridades,
+    load_chamados,
+    create_dim_tempo,
+)
 
 
 def main():
 
-    print("====================================")
-    print("       INICIANDO DATA PIPELINE")
-    print("====================================")
+    print("=" * 50)
+    print("        INICIANDO DATA PIPELINE")
+    print("=" * 50)
 
-    # -----------------------------------------
+    # ---------------------------------------------
     # EXTRACT
-    # -----------------------------------------
+    # ---------------------------------------------
 
-    print("\n[1/4] Extraindo dados...")
+    print("\n[1/4] Extract")
 
     chamados = extract_chamados()
     municipios = extract_municipios()
@@ -30,14 +43,14 @@ def main():
     prioridades = extract_prioridades()
 
     print(
-        f"Chamados extraídos: {len(chamados)}"
+        f"Chamados: {len(chamados)}"
     )
 
-    # -----------------------------------------
+    # ---------------------------------------------
     # VALIDATE
-    # -----------------------------------------
+    # ---------------------------------------------
 
-    print("\n[2/4] Validando dados...")
+    print("\n[2/4] Validate")
 
     validos, rejeitados, erros = (
         validate_chamados(
@@ -47,42 +60,60 @@ def main():
     )
 
     print(
-        f"Registros válidos: {len(validos)}"
+        f"Válidos: {len(validos)}"
     )
 
     print(
-        f"Registros rejeitados: {len(rejeitados)}"
+        f"Rejeitados: {len(rejeitados)}"
     )
 
-    # -----------------------------------------
+    # ---------------------------------------------
     # TRANSFORM
-    # -----------------------------------------
+    # ---------------------------------------------
 
-    print("\n[3/4] Transformando dados...")
+    print("\n[3/4] Transform")
 
     validos = transform_chamados(
         validos
     )
 
-    # -----------------------------------------
-    # SAVE
-    # -----------------------------------------
+    # ---------------------------------------------
+    # LOAD
+    # ---------------------------------------------
 
-    print("\n[4/4] Salvando resultados...")
+    print("\n[4/4] Load")
 
-    validos.to_csv(
-        "data/processed/chamados_validos.csv",
-        index=False,
+    engine = get_engine()
+
+    load_municipios(
+        municipios,
+        engine,
     )
 
-    rejeitados.to_csv(
-        "data/processed/chamados_rejeitados.csv",
-        index=False,
+    load_categorias(
+        categorias,
+        engine,
     )
 
-    print(
-        "\nPipeline finalizado!"
+    load_prioridades(
+        prioridades,
+        engine,
     )
+
+    load_chamados(
+        validos,
+        engine,
+    )
+
+    create_dim_tempo(
+        "2025-08-01",
+        "2026-08-01",
+        engine,
+    )
+
+    print("\nPipeline concluído!")
+
+    print("=" * 50)
 
 
 if __name__ == "__main__":
